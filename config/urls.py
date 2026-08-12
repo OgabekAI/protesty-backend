@@ -15,8 +15,37 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, include
+from django.views.generic import TemplateView
+from django.conf import settings
+from drf_spectacular.views import (
+    SpectacularAPIView,
+    SpectacularSwaggerView,
+    SpectacularRedocView,
+)
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+
+    # OpenAPI Schema & Interactive Documentation
+    path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
+    path('api/schema/swagger-ui/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
+    path('api/schema/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
+
+    # Test pages & Apps
+    path('', TemplateView.as_view(
+        template_name='unified_test.html',
+        extra_context={'google_client_id': getattr(settings, 'GOOGLE_CLIENT_ID', '')}
+    ), name='home'),
+    path('test-google/', TemplateView.as_view(
+        template_name='google_test.html',
+        extra_context={'google_client_id': getattr(settings, 'GOOGLE_CLIENT_ID', '')}
+    ), name='test-google'),
+    path('test-telegram/', TemplateView.as_view(
+        template_name='telegram_test.html'
+    ), name='test-telegram'),
+    path('api/v1/auth/', include('apps.authentication.urls', namespace='authentication')),
+    path('api/v1/', include('apps.users.urls', namespace='users')),
 ]
+
+
