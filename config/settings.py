@@ -153,7 +153,11 @@ SIMPLE_JWT = {
 
 # OAuth & Telegram authentication settings
 GOOGLE_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID', '')
+TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN', '')
 TELEGRAM_BOT_SECRET = os.getenv('TELEGRAM_BOT_SECRET', '')
+ADMIN_TELEGRAM_IDS = [
+    int(x.strip()) for x in os.getenv('ADMIN_TELEGRAM_IDS', '').split(',') if x.strip().isdigit()
+]
 
 
 # CORS configuration

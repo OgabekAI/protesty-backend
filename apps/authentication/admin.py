@@ -1,5 +1,20 @@
 from django.contrib import admin
-from .models import TelegramLoginCode
+from .models import TelegramLoginCode, TelegramBotUser
+
+
+@admin.register(TelegramBotUser)
+class TelegramBotUserAdmin(admin.ModelAdmin):
+    list_display = (
+        'telegram_id',
+        'first_name',
+        'username',
+        'is_active',
+        'created_at',
+        'updated_at',
+    )
+    list_filter = ('is_active', 'created_at')
+    search_fields = ('telegram_id', 'first_name', 'username')
+    ordering = ('-created_at',)
 
 
 @admin.register(TelegramLoginCode)

@@ -1,3 +1,4 @@
+import httpx
 from datetime import timedelta
 import secrets
 from django.conf import settings
@@ -7,7 +8,7 @@ from google.auth.transport import requests as google_requests
 from google.oauth2 import id_token as google_id_token
 from rest_framework import exceptions
 from rest_framework_simplejwt.tokens import RefreshToken
-from .models import TelegramLoginCode
+from .models import TelegramLoginCode, TelegramBotUser
 
 User = get_user_model()
 
@@ -98,11 +99,23 @@ class GoogleAuthService:
 
 class TelegramAuthService:
     @staticmethod
-    def generate_login_code(telegram_id, telegram_first_name='', telegram_photo_url=''):
+    def generate_login_code(telegram_id, telegram_first_name='', telegram_photo_url='', telegram_username=''):
         """
         Generates a 6-digit Telegram login code.
         Includes a 30-second cooldown to prevent spamming.
+        Also upserts TelegramBotUser model.
         """
+        # Save or update TelegramBotUser
+        TelegramBotUser.objects.update_or_create(
+            telegram_id=telegram_id,
+            defaults={
+                'first_name': telegram_first_name or '',
+                'username': telegram_username or '',
+                'photo_url': telegram_photo_url or None,
+                'is_active': True
+            }
+        )
+
         now = timezone.now()
         # Cooldown check: if code created in last 30 seconds, return existing valid code
         recent_code = TelegramLoginCode.objects.filter(
@@ -121,6 +134,77 @@ class TelegramAuthService:
             telegram_photo_url=telegram_photo_url or None,
         )
         return code_obj
+
+    @staticmethod
+    def broadcast_message(text, photo_url='', telegram_ids=None):
+        """
+        Sends broadcast message (with optional photo) to active Telegram bot users.
+        """
+        bot_token = getattr(settings, 'TELEGRAM_BOT_TOKEN', '')
+        if not bot_token:
+            raise exceptions.ValidationError({"detail": "TELEGRAM_BOT_TOKEN is not configured on backend."})
+
+        if telegram_ids and len(telegram_ids) > 0:
+            target_ids = set(telegram_ids)
+        else:
+            bot_users = set(TelegramBotUser.objects.filter(is_active=True).values_list('telegram_id', flat=True))
+            user_table_ids = set(User.objects.filter(telegram_id__isnull=False).values_list('telegram_id', flat=True))
+            target_ids = bot_users.union(user_table_ids)
+
+        if not target_ids:
+            return {"total": 0, "sent": 0, "failed": 0, "detail": "No active Telegram users found."}
+
+        sent_count = 0
+        failed_count = 0
+
+        with httpx.Client(timeout=10.0) as client:
+            for tid in target_ids:
+                try:
+                    if photo_url:
+                        url = f"https://api.telegram.org/bot{bot_token}/sendPhoto"
+                        payload = {
+                            "chat_id": tid,
+                            "photo": photo_url,
+                        }
+                        if text:
+                            payload["caption"] = text
+                            payload["parse_mode"] = "HTML"
+
+                        res = client.post(url, json=payload)
+                        # Fallback if HTML entities parse error occurs
+                        if res.status_code != 200 and "can't parse entities" in res.text:
+                            payload.pop("parse_mode", None)
+                            res = client.post(url, json=payload)
+                    else:
+                        url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
+                        payload = {
+                            "chat_id": tid,
+                            "text": text,
+                            "parse_mode": "HTML"
+                        }
+                        res = client.post(url, json=payload)
+                        # Fallback if HTML entities parse error occurs
+                        if res.status_code != 200 and "can't parse entities" in res.text:
+                            payload.pop("parse_mode", None)
+                            res = client.post(url, json=payload)
+
+                    if res.status_code == 200 and res.json().get('ok'):
+                        sent_count += 1
+                    else:
+                        failed_count += 1
+                        error_desc = res.json().get('description', '')
+                        print(f"Broadcast failed for {tid}: {res.status_code} - {error_desc}")
+                        if 'blocked' in error_desc.lower() or 'user is deactivated' in error_desc.lower():
+                            TelegramBotUser.objects.filter(telegram_id=tid).update(is_active=False)
+                except Exception as e:
+                    print(f"Exception broadcasting to {tid}: {e}")
+                    failed_count += 1
+
+        return {
+            "total": len(target_ids),
+            "sent": sent_count,
+            "failed": failed_count
+        }
 
     @staticmethod
     def verify_login_code(telegram_id, code_str, current_user=None):

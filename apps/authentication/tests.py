@@ -88,3 +88,21 @@ class AuthenticationAPITests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['message'], 'Successfully logged out.')
+
+    @patch('apps.authentication.services.httpx.Client')
+    def test_telegram_broadcast(self, mock_httpx):
+        bot_secret = getattr(settings, 'TELEGRAM_BOT_SECRET', '')
+        url = reverse('authentication:telegram-broadcast')
+        data = {
+            'text': 'Test broadcast announcement',
+            'photo_url': 'https://example.com/photo.jpg',
+            'telegram_ids': [123456789]
+        }
+        response = self.client.post(
+            url,
+            data,
+            format='json',
+            HTTP_X_TELEGRAM_BOT_SECRET=bot_secret or ''
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn('total', response.data)

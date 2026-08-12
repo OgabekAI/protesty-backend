@@ -9,6 +9,25 @@ def generate_6_digit_code():
     return f"{random.randint(100000, 999999)}"
 
 
+class TelegramBotUser(models.Model):
+    telegram_id = models.BigIntegerField(primary_key=True)
+    first_name = models.CharField(max_length=255, blank=True, default='')
+    username = models.CharField(max_length=255, blank=True, default='')
+    photo_url = models.URLField(max_length=500, null=True, blank=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Telegram Bot User'
+        verbose_name_plural = 'Telegram Bot Users'
+
+    def __str__(self):
+        return f"{self.first_name or self.username or self.telegram_id} ({self.telegram_id})"
+
+
+
 class TelegramLoginCode(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     telegram_id = models.BigIntegerField(db_index=True)

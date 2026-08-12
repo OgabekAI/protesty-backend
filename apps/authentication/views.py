@@ -8,6 +8,7 @@ from .serializers import (
     GoogleAuthSerializer,
     TelegramGenerateCodeSerializer,
     TelegramVerifyCodeSerializer,
+    TelegramBroadcastSerializer,
     LogoutSerializer,
 )
 from .services import GoogleAuthService, TelegramAuthService
@@ -36,6 +37,19 @@ class GoogleAuthView(APIView):
         }, status=status.HTTP_200_OK)
 
 
+def verify_bot_secret(request) -> bool:
+    bot_secret = getattr(settings, 'TELEGRAM_BOT_SECRET', '')
+    if not bot_secret:
+        return True
+    incoming_secret = (
+        request.headers.get('X-Telegram-Bot-Secret', '') or
+        request.headers.get('x-telegram-bot-secret', '') or
+        request.META.get('HTTP_X_TELEGRAM_BOT_SECRET', '') or
+        (isinstance(request.data, dict) and request.data.get('bot_secret', ''))
+    )
+    return incoming_secret == bot_secret
+
+
 class TelegramGenerateCodeView(APIView):
     """
     POST /api/v1/auth/telegram/code/
@@ -44,26 +58,25 @@ class TelegramGenerateCodeView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def post(self, request, *args, **kwargs):
-        bot_secret = getattr(settings, 'TELEGRAM_BOT_SECRET', '')
-        if bot_secret:
-            incoming_secret = request.headers.get('X-Telegram-Bot-Secret', '') or request.data.get('bot_secret', '')
-            if incoming_secret != bot_secret:
-                return Response(
-                    {"detail": "Unauthorized: Invalid bot secret key."},
-                    status=status.HTTP_401_UNAUTHORIZED
-                )
+        if not verify_bot_secret(request):
+            return Response(
+                {"detail": "Unauthorized: Invalid bot secret key."},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
 
         serializer = TelegramGenerateCodeSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         telegram_id = serializer.validated_data['telegram_id']
         telegram_first_name = serializer.validated_data.get('telegram_first_name', '')
+        telegram_username = serializer.validated_data.get('telegram_username', '')
         telegram_photo_url = serializer.validated_data.get('telegram_photo_url', '')
 
         code_obj = TelegramAuthService.generate_login_code(
             telegram_id=telegram_id,
             telegram_first_name=telegram_first_name,
             telegram_photo_url=telegram_photo_url,
+            telegram_username=telegram_username,
         )
 
         return Response({
@@ -71,6 +84,38 @@ class TelegramGenerateCodeView(APIView):
             'code': code_obj.code,
             'expires_at': code_obj.expires_at.isoformat(),
         }, status=status.HTTP_201_CREATED)
+
+
+class TelegramBroadcastView(APIView):
+    """
+    POST /api/v1/auth/telegram/broadcast/
+    Broadcasts announcement / ad (text or photo + text) to Telegram bot users.
+    Requires bot secret key or admin user credentials.
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request, *args, **kwargs):
+        is_admin = request.user and request.user.is_authenticated and (request.user.is_staff or getattr(request.user, 'role', '') in ('ADMIN', 'SUPER_ADMIN'))
+        if not verify_bot_secret(request) and not is_admin:
+            return Response(
+                {"detail": "Unauthorized: Admin privileges or valid bot secret required."},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+
+        serializer = TelegramBroadcastSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        text = serializer.validated_data['text']
+        photo_url = serializer.validated_data.get('photo_url', '')
+        telegram_ids = serializer.validated_data.get('telegram_ids', [])
+
+        result = TelegramAuthService.broadcast_message(
+            text=text,
+            photo_url=photo_url,
+            telegram_ids=telegram_ids
+        )
+
+        return Response(result, status=status.HTTP_200_OK)
 
 
 class TelegramVerifyCodeView(APIView):
