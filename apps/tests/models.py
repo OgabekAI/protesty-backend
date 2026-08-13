@@ -36,6 +36,13 @@ class Test(models.Model):
         verbose_name="Ichki yo'nalish / Subkategoriya"
     )
     duration_minutes = models.PositiveIntegerField(default=60, verbose_name="Vaqt (daqiqa)")
+    price = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=0.00,
+        verbose_name="Test narxi (so'm)",
+        help_text="0.00 = bepul test"
+    )
     is_published = models.BooleanField(default=False, verbose_name="Nashr qilinganmi?")
     created_by = models.ForeignKey(
         User,
@@ -122,6 +129,7 @@ class UserTestResult(models.Model):
     correct_count = models.PositiveIntegerField(default=0, verbose_name="To'g'ri javoblar soni")
     incorrect_count = models.PositiveIntegerField(default=0, verbose_name="Noto'g'ri javoblar soni")
     total_questions = models.PositiveIntegerField(default=0, verbose_name="Jami savollar soni")
+    time_spent_seconds = models.PositiveIntegerField(default=0, verbose_name="Sarflangan vaqt (soniya)")
     completed_at = models.DateTimeField(auto_now_add=True, verbose_name="Topshirilgan vaqt")
 
     class Meta:

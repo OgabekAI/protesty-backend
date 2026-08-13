@@ -9,7 +9,7 @@ class AnswerInline(admin.TabularInline):
 
 @admin.register(Test)
 class TestAdmin(admin.ModelAdmin):
-    list_display = ('id', 'title', 'category', 'subcategory', 'duration_minutes', 'is_published', 'created_at')
+    list_display = ('id', 'title', 'category', 'subcategory', 'duration_minutes', 'price', 'is_published', 'created_at')
     list_filter = ('category', 'is_published', 'created_at')
     search_fields = ('title', 'subcategory', 'description')
     ordering = ('-created_at',)
@@ -42,7 +42,7 @@ class UserAnswerDetailInline(admin.TabularInline):
 
 @admin.register(UserTestResult)
 class UserTestResultAdmin(admin.ModelAdmin):
-    list_display = ('id', 'user', 'test', 'score', 'correct_count', 'incorrect_count', 'total_questions', 'completed_at')
+    list_display = ('id', 'user', 'test', 'score', 'correct_count', 'incorrect_count', 'total_questions', 'time_spent_seconds', 'completed_at')
     list_filter = ('test__category', 'completed_at')
     search_fields = ('user__username', 'user__email', 'test__title')
     inlines = [UserAnswerDetailInline]

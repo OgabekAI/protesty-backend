@@ -11,7 +11,6 @@ class AnswerSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         data = super().to_representation(instance)
         # Hide is_correct from students taking tests unless specified in context
-        request = self.context.get('request')
         hide_correct = self.context.get('hide_correct', False)
         if hide_correct:
             data.pop('is_correct', None)
@@ -28,6 +27,18 @@ class QuestionSerializer(serializers.ModelSerializer):
             'image', 'audio', 'question_type', 'points',
             'order', 'options'
         ]
+
+    def validate(self, attrs):
+        options_data = attrs.get('options', None)
+        
+        # Validation: If options are provided, at least one option must have is_correct=True
+        if options_data is not None and len(options_data) > 0:
+            has_correct = any(opt.get('is_correct', False) for opt in options_data)
+            if not has_correct:
+                raise serializers.ValidationError({
+                    "options": "Savolda kamida bitta to'g'ri javob varianti (is_correct=True) belgilanishi shart!"
+                })
+        return attrs
 
     def create(self, validated_data):
         options_data = validated_data.pop('options', [])
@@ -59,7 +70,7 @@ class TestSerializer(serializers.ModelSerializer):
         model = Test
         fields = [
             'id', 'title', 'description', 'category', 'category_display',
-            'subcategory', 'duration_minutes', 'is_published',
+            'subcategory', 'duration_minutes', 'price', 'is_published',
             'created_by', 'created_at', 'updated_at', 'questions_count',
             'questions'
         ]
@@ -74,7 +85,8 @@ class SubmitAnswerItemSerializer(serializers.Serializer):
 
 class SubmitTestSerializer(serializers.Serializer):
     test_id = serializers.IntegerField()
-    answers = SubmitAnswerItemSerializer(many=True)
+    time_spent_seconds = serializers.IntegerField(required=False, default=0)
+    answers = SubmitAnswerItemSerializer(many=True, required=False, default=list)
 
     def validate_test_id(self, value):
         try:
@@ -86,13 +98,18 @@ class SubmitTestSerializer(serializers.Serializer):
     def create(self, validated_data):
         user = self.context['request'].user
         test_id = validated_data['test_id']
-        answers_data = validated_data['answers']
+        time_spent_seconds = validated_data.get('time_spent_seconds', 0)
+        answers_data = validated_data.get('answers', [])
 
         test = Test.objects.get(id=test_id)
         questions = test.questions.all().prefetch_related('options')
-        question_map = {q.id: q for q in questions}
+        
+        # Map submitted answers by question_id
+        submitted_answers_map = {
+            ans['question_id']: ans for ans in answers_data if 'question_id' in ans
+        }
 
-        total_questions = len(question_map)
+        total_questions = questions.count()
         correct_count = 0
         incorrect_count = 0
 
@@ -100,28 +117,28 @@ class SubmitTestSerializer(serializers.Serializer):
         result = UserTestResult.objects.create(
             user=user,
             test=test,
-            total_questions=total_questions
+            total_questions=total_questions,
+            time_spent_seconds=time_spent_seconds
         )
 
-        for ans in answers_data:
-            q_id = ans.get('question_id')
-            selected_opt_id = ans.get('selected_option_id')
-            text_ans = ans.get('text_answer')
-
-            question = question_map.get(q_id)
-            if not question:
-                continue
-
+        # Process ALL questions in the test (unanswered questions are automatically marked incorrect)
+        for question in questions:
+            ans_data = submitted_answers_map.get(question.id)
             selected_option = None
+            text_ans = None
             is_correct = False
 
-            if selected_opt_id:
-                try:
-                    selected_option = Answer.objects.get(id=selected_opt_id, question=question)
-                    if selected_option.is_correct:
-                        is_correct = True
-                except Answer.DoesNotExist:
-                    pass
+            if ans_data:
+                selected_opt_id = ans_data.get('selected_option_id')
+                text_ans = ans_data.get('text_answer')
+
+                if selected_opt_id:
+                    try:
+                        selected_option = Answer.objects.get(id=selected_opt_id, question=question)
+                        if selected_option.is_correct:
+                            is_correct = True
+                    except Answer.DoesNotExist:
+                        pass
 
             if is_correct:
                 correct_count += 1
@@ -149,13 +166,20 @@ class SubmitTestSerializer(serializers.Serializer):
 
 class UserAnswerDetailSerializer(serializers.ModelSerializer):
     question_text = serializers.CharField(source='question.question_text', read_only=True)
+    passage = serializers.CharField(source='question.passage', read_only=True, default=None)
+    image = serializers.ImageField(source='question.image', read_only=True, default=None)
+    audio = serializers.FileField(source='question.audio', read_only=True, default=None)
+    question_type = serializers.CharField(source='question.question_type', read_only=True)
+    points = serializers.IntegerField(source='question.points', read_only=True)
+    order = serializers.IntegerField(source='question.order', read_only=True)
     selected_option_text = serializers.CharField(source='selected_option.text', read_only=True, default=None)
     correct_option_text = serializers.SerializerMethodField()
 
     class Meta:
         model = UserAnswerDetail
         fields = [
-            'id', 'question', 'question_text',
+            'id', 'question', 'question_text', 'passage', 'image', 'audio',
+            'question_type', 'points', 'order',
             'selected_option', 'selected_option_text',
             'text_answer', 'is_correct', 'correct_option_text'
         ]
@@ -176,5 +200,5 @@ class UserTestResultSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'user', 'test', 'test_title', 'category', 'subcategory',
             'score', 'correct_count', 'incorrect_count',
-            'total_questions', 'completed_at', 'answers_breakdown'
+            'total_questions', 'time_spent_seconds', 'completed_at', 'answers_breakdown'
         ]
