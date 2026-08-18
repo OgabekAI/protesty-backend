@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PROTESTY UZ — Billing Test Console (DEV 3)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0b0f19;
+            --surface: #131a29;
+            --surface-hover: #1b2438;
+            --surface-border: rgba(255, 255, 255, 0.08);
+            --primary: #3b82f6;
+            --primary-hover: #2563eb;
+            --success: #10b981;
+            --success-bg: rgba(16, 185, 129, 0.12);
+            --danger: #ef4444;
+            --danger-bg: rgba(239, 68, 68, 0.12);
+            --warning: #f59e0b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --font: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text-main);
+            font-family: var(--font);
+            min-height: 100vh;
+            padding: 24px;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .container {
+            max-width: 1280px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--surface);
+            border: 1px solid var(--surface-border);
+            padding: 18px 24px;
+            border-radius: 16px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+
+        .logo-group h1 {
+            font-size: 20px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .badge-dev {
+            background: #2563eb;
+            color: white;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 6px;
+            text-transform: uppercase;
+        }
+
+        .user-selector-bar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .user-selector-bar select {
+            background: var(--bg);
+            color: var(--text-main);
+            border: 1px solid var(--surface-border);
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 14px;
+            outline: none;
+            cursor: pointer;
+        }
+
+        /* Layout Grid */
+        .grid {
+            display: grid;
+            grid-template-columns: 380px 1fr;
+            gap: 24px;
+        }
+
+        @media (max-width: 960px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Cards */
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--surface-border);
+            border-radius: 16px;
+            padding: 22px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+            border-bottom: 1px solid var(--surface-border);
+            padding-bottom: 12px;
+        }
+
+        .card-header h2 {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        /* Balance Display */
+        .balance-hero {
+            text-align: center;
+            padding: 16px 0;
+        }
+
+        .balance-hero .label {
+            font-size: 13px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+        }
+
+        .balance-hero .amount {
+            font-size: 38px;
+            font-weight: 800;
+            color: #60a5fa;
+            letter-spacing: -1px;
+            margin-bottom: 12px;
+        }
+
+        .subscription-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .subscription-badge.active {
+            background: var(--success-bg);
+            color: var(--success);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .subscription-badge.inactive {
+            background: rgba(148, 163, 184, 0.1);
+            color: var(--text-muted);
+            border: 1px solid var(--surface-border);
+        }
+
+        /* Forms & Inputs */
+        .form-group {
+            margin-bottom: 14px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+
+        input[type="text"], input[type="number"], select {
+            width: 100%;
+            background: var(--bg);
+            border: 1px solid var(--surface-border);
+            border-radius: 8px;
+            padding: 10px 14px;
+            color: var(--text-main);
+            font-family: inherit;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        input[type="text"]:focus, input[type="number"]:focus, select:focus {
+            border-color: var(--primary);
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 16px;
+            font-size: 14px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.2s;
+        }
+
+        .btn:hover {
+            background: var(--primary-hover);
+            transform: translateY(-1px);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-success {
+            background: var(--success);
+        }
+        .btn-success:hover {
+            background: #059669;
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--surface-border);
+            color: var(--text-main);
+        }
+
+        .btn-outline:hover {
+            background: var(--surface-hover);
+        }
+
+        .btn-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        /* Test List Cards */
+        .test-card {
+            background: var(--bg);
+            border: 1px solid var(--surface-border);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            transition: border-color 0.2s;
+        }
+
+        .test-card:hover {
+            border-color: rgba(59, 130, 246, 0.4);
+        }
+
+        .test-info h3 {
+            font-size: 15px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .test-info p {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .test-action {
+            text-align: right;
+            min-width: 140px;
+        }
+
+        .test-price {
+            font-size: 15px;
+            font-weight: 700;
+            color: #60a5fa;
+            margin-bottom: 6px;
+        }
+
+        /* Table */
+        .table-responsive {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            text-align: left;
+        }
+
+        th {
+            background: rgba(0,0,0,0.2);
+            color: var(--text-muted);
+            font-weight: 600;
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--surface-border);
+        }
+
+        td {
+            padding: 12px;
+            border-bottom: 1px solid var(--surface-border);
+        }
+
+        tr:hover td {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .amount-credit {
+            color: var(--success);
+            font-weight: 700;
+        }
+
+        .amount-debit {
+            color: var(--danger);
+            font-weight: 700;
+        }
+
+        /* Logs console */
+        .toast {
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            margin-top: 10px;
+            display: none;
+        }
+        .toast.show {
+            display: block;
+        }
+        .toast-success {
+            background: var(--success-bg);
+            color: var(--success);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+        .toast-error {
+            background: var(--danger-bg);
+            color: var(--danger);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        /* Tabs */
+        .nav-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 16px;
+            border-bottom: 1px solid var(--surface-border);
+            padding-bottom: 8px;
+        }
+
+        .nav-tab {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: 600;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .nav-tab.active {
+            background: var(--primary);
+            color: white;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- Header -->
+    <header>
+        <div class="logo-group">
+            <h1>PROTESTY UZ <span class="badge-dev">DEV 3 — Billing Console</span></h1>
+        </div>
+        <div class="user-selector-bar">
+            <span style="font-size: 13px; color: var(--text-muted);">Sinov Foydalanuvchisi:</span>
+            <select id="userSelector" onchange="switchUser()">
+                <option value="1">Foydalanuvchi #1 (ID: 1 - user1)</option>
+                <option value="2">Foydalanuvchi #2 (ID: 2 - user2)</option>
+                <option value="admin">Administrator (Super Admin)</option>
+            </select>
+        </div>
+    </header>
+
+    <div class="grid">
+        <!-- LEFT COLUMN -->
+        <div>
+            <!-- Balance Card -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>Hisob Balansi</h2>
+                    <button class="btn-outline" style="padding: 4px 10px; font-size: 12px; border-radius: 6px;" onclick="loadBillingData()">🔄 Yangilash</button>
+                </div>
+                <div class="balance-hero">
+                    <div class="label">Joriy Balans</div>
+                    <div class="amount" id="balanceAmount">0 UZS</div>
+                    <div id="subBadge" class="subscription-badge inactive">
+                        <span>●</span> <span id="subStatusText">Oylik Obuna: Faol emas</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Top up Card -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>Balans To‘ldirish</h2>
+                </div>
+                <div class="form-group">
+                    <label>Summa (UZS):</label>
+                    <input type="number" id="topupAmount" value="50000" step="5000" min="1000">
+                </div>
+                <div class="btn-group">
+                    <button class="btn btn-outline" onclick="initiatePayment('CLICK')">Click</button>
+                    <button class="btn btn-outline" onclick="initiatePayment('PAYME')">Payme</button>
+                    <button class="btn btn-outline" onclick="initiatePayment('TRANSFER')">Transfer</button>
+                </div>
+                <div id="paymentToast" class="toast"></div>
+            </div>
+
+            <!-- Promo Code Card -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>Promokod Faollashtirish</h2>
+                </div>
+                <div class="form-group">
+                    <label>Promokodni kiriting:</label>
+                    <input type="text" id="promoCodeInput" placeholder="Masalan: PROTESTY100" style="text-transform: uppercase;">
+                </div>
+                <button class="btn btn-success" onclick="activatePromoCode()">Faollashtirish</button>
+                <div id="promoToast" class="toast"></div>
+            </div>
+
+            <!-- Subscription Purchase Card -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>Oylik Obuna</h2>
+                </div>
+                <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 12px;">
+                    Oylik obuna barcha mavjud testlarga 30 kun davomida cheksiz kirish imkonini beradi.
+                </p>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; background: var(--bg); padding: 12px; border-radius: 8px;">
+                    <div>
+                        <strong style="font-size: 14px;">Standart Reja</strong>
+                        <div style="font-size: 12px; color: var(--text-muted);">30 kun / Cheksiz</div>
+                    </div>
+                    <div style="font-size: 16px; font-weight: 800; color: #60a5fa;" id="planPriceDisplay">50 000 UZS</div>
+                </div>
+                <button class="btn" onclick="purchaseSubscription()">Obuna Sotib Olish (Balansdan)</button>
+                <div id="subToast" class="toast"></div>
+            </div>
+        </div>
+
+        <!-- RIGHT COLUMN -->
+        <div>
+            <!-- Test Catalog Simulator (DEV 2 Interop) -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>Testlar Katalogi (DEV 2 Sinovi)</h2>
+                    <span style="font-size: 12px; color: var(--text-muted);">Balans yoki Obuna orqali ochish</span>
+                </div>
+
+                <div class="test-card">
+                    <div class="test-info">
+                        <h3>Test #1: IELTS Full Mock Exam (Reading + Listening + Writing)</h3>
+                        <p>120 daqiqa • 40 savol • Sertifikat bilan</p>
+                    </div>
+                    <div class="test-action">
+                        <div class="test-price">15 000 UZS</div>
+                        <button class="btn" id="btnTest1" onclick="buyTest(1, 15000)">Sotib Olish</button>
+                    </div>
+                </div>
+
+                <div class="test-card">
+                    <div class="test-info">
+                        <h3>Test #2: SAT Math Section Practice Test</h3>
+                        <p>70 daqiqa • 44 savol • Digital SAT formati</p>
+                    </div>
+                    <div class="test-action">
+                        <div class="test-price">10 000 UZS</div>
+                        <button class="btn" id="btnTest2" onclick="buyTest(2, 10000)">Sotib Olish</button>
+                    </div>
+                </div>
+
+                <div class="test-card">
+                    <div class="test-info">
+                        <h3>Test #3: DTM Tarix Majburiy Blok</h3>
+                        <p>30 daqiqa • 15 savol • Standart DTM</p>
+                    </div>
+                    <div class="test-action">
+                        <div class="test-price">5 000 UZS</div>
+                        <button class="btn" id="btnTest3" onclick="buyTest(3, 5000)">Sotib Olish</button>
+                    </div>
+                </div>
+                <div id="testToast" class="toast"></div>
+            </div>
+
+            <!-- Transaction Audit Log -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>Tranzaksiyalar Tarixi (Audit Log)</h2>
+                </div>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Sana & Vaqt</th>
+                                <th>Turi</th>
+                                <th>Summa</th>
+                                <th>Tavsif</th>
+                                <th>Balans (Keyin)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="transactionTableBody">
+                            <tr>
+                                <td colspan="5" style="text-align: center; color: var(--text-muted);">Yuklanmoqda...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Admin Controls (SUPER_ADMIN) -->
+            <div class="card" id="adminCard" style="border-color: rgba(245, 158, 11, 0.3);">
+                <div class="card-header">
+                    <h2 style="color: var(--warning);">⚡ Admin & Super Admin Boshqaruvi</h2>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                    <div>
+                        <h4 style="font-size: 13px; margin-bottom: 8px;">Yangi Promokod Yaratish</h4>
+                        <div class="form-group">
+                            <input type="text" id="newPromoCode" placeholder="KOD (masalan: PROTESTY100)">
+                        </div>
+                        <div class="form-group">
+                            <input type="number" id="newPromoAmount" placeholder="Summa (masalan: 100000)">
+                        </div>
+                        <div class="form-group">
+                            <input type="number" id="newPromoLimit" placeholder="Aktivatsiya limiti (masalan: 500)" value="500">
+                        </div>
+                        <button class="btn btn-outline" onclick="adminCreatePromo()">Promokod Yaratish</button>
+                    </div>
+
+                    <div>
+                        <h4 style="font-size: 13px; margin-bottom: 8px;">Registration Bonus & Sozlamalar</h4>
+                        <div class="form-group">
+                            <label>Registration Bonus (UZS):</label>
+                            <input type="number" id="settingBonus" value="10000">
+                        </div>
+                        <div class="form-group">
+                            <label>Oylik Obuna Narxi (UZS):</label>
+                            <input type="number" id="settingSubPrice" value="50000">
+                        </div>
+                        <button class="btn btn-outline" onclick="adminSaveSettings()">Sozlamalarni Saqlash</button>
+                    </div>
+                </div>
+                <div id="adminToast" class="toast"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // State
+    let currentUserId = "1";
+
+    function showToast(elemId, msg, isSuccess = true) {
+        const el = document.getElementById(elemId);
+        el.className = `toast show ${isSuccess ? 'toast-success' : 'toast-error'}`;
+        el.innerText = msg;
+        setTimeout(() => {
+            el.className = 'toast';
+        }, 5000);
+    }
+
+    function formatUZS(amount) {
+        return Number(amount).toLocaleString('uz-UZ').replace(/,/g, ' ') + ' UZS';
+    }
+
+    async function loadBillingData() {
+        try {
+            // 1. Fetch balance & sub
+            const balRes = await fetch(`/api/v1/balance/?user_id=${currentUserId}`);
+            if (balRes.ok) {
+                const balData = await balRes.json();
+                document.getElementById('balanceAmount').innerText = formatUZS(balData.amount);
+
+                const subBadge = document.getElementById('subBadge');
+                const subText = document.getElementById('subStatusText');
+                if (balData.has_active_subscription) {
+                    subBadge.className = 'subscription-badge active';
+                    subText.innerText = `Oylik Obuna: Faol (Tugash: ${new Date(balData.active_subscription_end_date).toLocaleDateString('uz-UZ')})`;
+                } else {
+                    subBadge.className = 'subscription-badge inactive';
+                    subText.innerText = 'Oylik Obuna: Faol emas';
+                }
+            }
+
+            // 2. Fetch transaction history
+            const txRes = await fetch(`/api/v1/balance/history/?user_id=${currentUserId}`);
+            if (txRes.ok) {
+                const txData = await txRes.json();
+                const items = txData.results || txData;
+                const tbody = document.getElementById('transactionTableBody');
+                if (items.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color: var(--text-muted);">Tranzaksiyalar mavjud emas.</td></tr>';
+                } else {
+                    tbody.innerHTML = items.map(tx => {
+                        const isCredit = ['DEPOSIT', 'REGISTRATION_BONUS', 'PROMO_CODE', 'ADMIN_CREDIT', 'REFUND'].includes(tx.transaction_type);
+                        const dateStr = new Date(tx.created_at).toLocaleString('uz-UZ');
+                        return `
+                            <tr>
+                                <td style="color: var(--text-muted);">${dateStr}</td>
+                                <td><span style="font-weight:600;">${tx.transaction_type_display}</span></td>
+                                <td class="${isCredit ? 'amount-credit' : 'amount-debit'}">${isCredit ? '+' : '-'}${formatUZS(tx.amount)}</td>
+                                <td>${tx.description || '-'}</td>
+                                <td style="font-weight:600;">${formatUZS(tx.balance_after)}</td>
+                            </tr>
+                        `;
+                    }).join('');
+                }
+            }
+
+            // 3. Check tests access
+            for (let testId of [1, 2, 3]) {
+                checkTestAccess(testId);
+            }
+
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    async function checkTestAccess(testId) {
+        try {
+            const res = await fetch(`/api/v1/purchases/check/?test_id=${testId}&user_id=${currentUserId}`);
+            if (res.ok) {
+                const data = await res.json();
+                const btn = document.getElementById(`btnTest${testId}`);
+                if (data.has_access) {
+                    btn.className = 'btn btn-success';
+                    btn.disabled = true;
+                    btn.innerText = data.access_type === 'SUBSCRIPTION' ? '✓ Obuna orqali ochiq' : '✓ Sotib olingan';
+                } else {
+                    btn.className = 'btn';
+                    btn.disabled = false;
+                    btn.innerText = 'Sotib Olish';
+                }
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    async function initiatePayment(method) {
+        const amount = document.getElementById('topupAmount').value;
+        if (!amount || amount < 1000) {
+            showToast('paymentToast', 'Kamida 1 000 UZS to‘lov kiriting.', false);
+            return;
+        }
+
+        try {
+            const res = await fetch('/api/v1/payments/', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    amount: amount,
+                    payment_method: method,
+                    user_id: currentUserId
+                })
+            });
+            const data = await res.json();
+
+            if (res.ok) {
+                // Auto complete for quick test
+                if (method === 'CLICK') {
+                    await fetch('/api/v1/payments/webhook/click/', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({
+                            action: 1,
+                            click_trans_id: Date.now(),
+                            merchant_trans_id: data.id,
+                            amount: amount,
+                            error: 0
+                        })
+                    });
+                    showToast('paymentToast', `Click to‘lovi muvaffaqiyatli amalga oshirildi! (+${formatUZS(amount)})`, true);
+                } else if (method === 'PAYME') {
+                    await fetch('/api/v1/payments/webhook/payme/', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({
+                            id: 1,
+                            method: 'PerformTransaction',
+                            params: {
+                                id: 'payme_' + Date.now(),
+                                account: { order_id: data.id }
+                            }
+                        })
+                    });
+                    showToast('paymentToast', `Payme to‘lovi muvaffaqiyatli amalga oshirildi! (+${formatUZS(amount)})`, true);
+                } else {
+                    // Transfer approve
+                    await fetch(`/api/v1/admin/payments/${data.id}/approve/`, {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({admin_notes: 'Test konsol tasdiqladi'})
+                    });
+                    showToast('paymentToast', `Bank o‘tkazmasi tasdiqlandi va balans to‘ldirildi! (+${formatUZS(amount)})`, true);
+                }
+
+                loadBillingData();
+            } else {
+                showToast('paymentToast', data.detail || 'Xatolik yuz berdi.', false);
+            }
+        } catch (e) {
+            showToast('paymentToast', 'Tarmoq xatosi.', false);
+        }
+    }
+
+    async function activatePromoCode() {
+        const code = document.getElementById('promoCodeInput').value;
+        if (!code) {
+            showToast('promoToast', 'Promokodni kiriting.', false);
+            return;
+        }
+
+        try {
+            const res = await fetch('/api/v1/promo-codes/activate/', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    code: code,
+                    user_id: currentUserId
+                })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                showToast('promoToast', data.message, true);
+                document.getElementById('promoCodeInput').value = '';
+                loadBillingData();
+            } else {
+                showToast('promoToast', data.detail || 'Promokod xato.', false);
+            }
+        } catch (e) {
+            showToast('promoToast', 'Tarmoq xatosi.', false);
+        }
+    }
+
+    async function buyTest(testId, price) {
+        try {
+            const res = await fetch('/api/v1/purchases/', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    test_id: testId,
+                    price: price,
+                    user_id: currentUserId
+                })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                showToast('testToast', `Test #${testId} muvaffaqiyatli sotib olindi!`, true);
+                loadBillingData();
+            } else {
+                showToast('testToast', data.detail || 'Xarid amalga oshmadi.', false);
+            }
+        } catch (e) {
+            showToast('testToast', 'Tarmoq xatosi.', false);
+        }
+    }
+
+    async function purchaseSubscription() {
+        try {
+            const res = await fetch('/api/v1/subscriptions/purchase/', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    user_id: currentUserId
+                })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                showToast('subToast', 'Oylik obuna faollashtirildi!', true);
+                loadBillingData();
+            } else {
+                showToast('subToast', data.detail || 'Obuna sotib olib bo‘lmadi.', false);
+            }
+        } catch (e) {
+            showToast('subToast', 'Tarmoq xatosi.', false);
+        }
+    }
+
+    async function adminCreatePromo() {
+        const code = document.getElementById('newPromoCode').value;
+        const amount = document.getElementById('newPromoAmount').value;
+        const limit = document.getElementById('newPromoLimit').value;
+
+        if (!code || !amount) {
+            showToast('adminToast', 'Kod va summani kiriting.', false);
+            return;
+        }
+
+        try {
+            const res = await fetch('/api/v1/admin/promo-codes/', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    code: code,
+                    amount: amount,
+                    activation_limit: limit || 100
+                })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                showToast('adminToast', `Promokod ${code} muvaffaqiyatli yaratildi!`, true);
+                document.getElementById('newPromoCode').value = '';
+                document.getElementById('newPromoAmount').value = '';
+            } else {
+                showToast('adminToast', JSON.stringify(data), false);
+            }
+        } catch (e) {
+            showToast('adminToast', 'Xatolik yuz berdi.', false);
+        }
+    }
+
+    async function adminSaveSettings() {
+        const bonus = document.getElementById('settingBonus').value;
+        const price = document.getElementById('settingSubPrice').value;
+
+        try {
+            const res = await fetch('/api/v1/admin/billing/settings/', {
+                method: 'PUT',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    registration_bonus: bonus,
+                    default_subscription_price: price
+                })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                showToast('adminToast', 'Billing sozlamalari muvaffaqiyatli saqlandi!', true);
+            } else {
+                showToast('adminToast', JSON.stringify(data), false);
+            }
+        } catch (e) {
+            showToast('adminToast', 'Xatolik yuz berdi.', false);
+        }
+    }
+
+    function switchUser() {
+        currentUserId = document.getElementById('userSelector').value;
+        loadBillingData();
+    }
+
+    // Initial Load
+    loadBillingData();
+</script>
+</body>
+</html>
