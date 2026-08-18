@@ -87,7 +87,7 @@ class BalanceView(APIView):
 
         # Statistika
         total_deposited = Transaction.objects.filter(
-            user=request.user,
+            user=user,
             transaction_type__in=[
                 TransactionType.DEPOSIT,
                 TransactionType.REGISTRATION_BONUS,
@@ -97,7 +97,7 @@ class BalanceView(APIView):
         ).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
 
         total_spent = Transaction.objects.filter(
-            user=request.user,
+            user=user,
             transaction_type__in=[
                 TransactionType.TEST_PURCHASE,
                 TransactionType.SUBSCRIPTION,
